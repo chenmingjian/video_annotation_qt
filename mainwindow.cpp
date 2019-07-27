@@ -38,7 +38,6 @@ SimplePlayer::SimplePlayer(QWidget *parent)
 
     ui->next->setEnabled(false);
 
-    this->on_actionOpen_dir_triggered();
     ui->seek->installEventFilter(this);
 
     ui->undo->setEnabled(false);
