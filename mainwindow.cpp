@@ -41,6 +41,8 @@ SimplePlayer::SimplePlayer(QWidget *parent)
     ui->seek->installEventFilter(this);
 
     ui->undo->setEnabled(false);
+
+    ui->play->setEnabled(false);
 }
 
 SimplePlayer::~SimplePlayer()
@@ -64,6 +66,7 @@ void SimplePlayer::openLocal()
         return;
     this->currentVideoPath << file;
     this->setVideo(file);
+
 }
 
 void SimplePlayer::setVideo(QString filePath)
@@ -73,7 +76,7 @@ void SimplePlayer::setVideo(QString filePath)
     this->_player->open(_media);
 
     this->isPlaying = true;
-
+    ui->play->setEnabled(true);
     reset();
 }
 
@@ -93,8 +96,7 @@ void SimplePlayer::flash(int ms)
 
 void SimplePlayer::keyPressEvent(QKeyEvent *event)
 {
-//    if(event->key() == Qt::Key_Control && this->isPlaying)
-    if(event->key() == Qt::Key_Control)
+    if(event->key() == Qt::Key_Control && this->isPlaying)
     {
         isPressing = true;
         qDebug() << _player->time() << _player->position();
@@ -181,11 +183,13 @@ void SimplePlayer::on_play_clicked()
      {
         this->_player->pause();
         this->isPlaying = false;
+        ui->play->setText("play");
     }
     else
     {
         this->_player->play();
         this->isPlaying = true;
+        ui->play->setText("pause");
     }
 }
 
