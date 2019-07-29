@@ -13,7 +13,6 @@
 
 #include <QDebug>
 #include <QKeyEvent>
-#include <QtTest/QTest>
 
 #include <tools.hpp>
 
@@ -43,6 +42,39 @@ SimplePlayer::SimplePlayer(QWidget *parent)
     ui->undo->setEnabled(false);
 
     ui->play->setEnabled(false);
+
+    ui->replay->setEnabled(false);
+
+    QPixmap p(16,16);
+
+    colors << QColor(255, 0, 0)
+           << QColor(255, 165, 0)
+           << QColor(255, 255, 0)
+           << QColor(0, 255, 0)
+           << QColor(0, 127, 255)
+           << QColor(0, 0, 255)
+           << QColor(139, 0, 255)
+           << QColor(0, 0, 0);
+
+    p.fill(QColor(255, 0, 0));
+    ui->action1->setIcon(QIcon(p));
+    p.fill(QColor(255, 165, 0));
+    ui->action2->setIcon(QIcon(p));
+    p.fill(QColor(255, 255, 0));
+    ui->action3->setIcon(QIcon(p));
+    p.fill(QColor(0, 255, 0));
+    ui->action4->setIcon(QIcon(p));
+    p.fill(QColor(0, 127, 255));
+    ui->action5->setIcon(QIcon(p));
+    p.fill(QColor(0, 0, 255));
+    ui->action6->setIcon(QIcon(p));
+    p.fill(QColor(139, 0, 255));
+    ui->action7->setIcon(QIcon(p));
+    p.fill(QColor(0, 0, 0));
+    ui->action8->setIcon(QIcon(p));
+
+    this->currentActionIndex = 1;
+    ui->action1->setEnabled(false);
 }
 
 SimplePlayer::~SimplePlayer()
@@ -77,6 +109,7 @@ void SimplePlayer::setVideo(QString filePath)
 
     this->isPlaying = true;
     ui->play->setEnabled(true);
+    ui->replay->setEnabled(true);
     reset();
 }
 
@@ -88,11 +121,19 @@ void SimplePlayer::flash(int ms)
     }
     _player->pause();
     this->setWindowOpacity(0.8);
-    QTest::qSleep(ms);
     this->setWindowOpacity(1.0);
     _player->play();
 }
 
+void SimplePlayer::writPostion()
+{
+    auto position = this->_player->position();
+    this->xs << (ui->seek->width() - 90) * position + 45;
+    this->positions << position;
+    this->actionTypes << this->currentActionIndex;
+    ui->seek->update();
+    this->writeToFile();
+}
 
 void SimplePlayer::keyPressEvent(QKeyEvent *event)
 {
@@ -100,15 +141,10 @@ void SimplePlayer::keyPressEvent(QKeyEvent *event)
     {
         isPressing = true;
         qDebug() << _player->time() << _player->position();
-//        this->flash(500);
-        auto position = this->_player->position();
-        this->xs << (ui->seek->width() - 90) * position + 45;
-        this->positions << position;
-        ui->seek->update();
-        this->writeToFile();
+        writPostion();
 
     }
-    else if(event->key() == Qt::Key_U)
+    else if(event->key() == Qt::Key_Backspace)
     {
         this->on_undo_clicked();
 
@@ -117,6 +153,19 @@ void SimplePlayer::keyPressEvent(QKeyEvent *event)
         ui->undo->setEnabled(false);
     else
         ui->undo->setEnabled(true);
+
+    switch (event->key()) {
+        case Qt::Key_1: on_action1_clicked();writPostion();break;
+        case Qt::Key_2: on_action2_clicked();writPostion();break;
+        case Qt::Key_3: on_action3_clicked();writPostion();break;
+        case Qt::Key_4: on_action4_clicked();writPostion();break;
+        case Qt::Key_5: on_action5_clicked();writPostion();break;
+        case Qt::Key_6: on_action6_clicked();writPostion();break;
+        case Qt::Key_7: on_action7_clicked();writPostion();break;
+        case Qt::Key_8: on_action8_clicked();writPostion();break;
+
+
+    }
 }
 
 void SimplePlayer::keyReleaseEvent(QKeyEvent *event)
@@ -129,15 +178,16 @@ void SimplePlayer::keyReleaseEvent(QKeyEvent *event)
 
 void SimplePlayer::writeToFile()
 {
-    QString save_path = "./output_txt/";
-    QDir dir(save_path);
+    QString save_dir_path = "./output_txt/";
+    QFileInfo save_path_info(save_dir_path);
+    QDir dir(save_path_info.absoluteFilePath());
     if(!dir.exists())
-        dir.mkpath(save_path);
+        dir.mkdir(dir.path());
 
     QFileInfo fi(this->currentVideoPath.at(this->currentVideoIndex));
     auto baseName = fi.baseName();
-    save_path += baseName + ".txt";
-    savetxt<QVector<float>>(save_path, this->positions);
+    auto save_path = save_dir_path + baseName + ".txt";
+    savetxt<QVector<float>, QVector<int>>(save_path, this->positions, this->actionTypes);
 }
 
 void SimplePlayer::on_actionOpen_dir_triggered()
@@ -156,6 +206,7 @@ void SimplePlayer::on_actionOpen_dir_triggered()
 
 void SimplePlayer::nextVideo()
 {
+
     if(this->currentVideoIndex + 1 >= this->currentVideoPath.length())
         return;
     else
@@ -167,10 +218,12 @@ void SimplePlayer::nextVideo()
         ui->next->setEnabled(true);
 
     this->setVideo(this->currentVideoPath.at(this->currentVideoIndex));
+
 }
 
 void SimplePlayer::on_next_clicked()
 {
+    this->writeToFile();
     if(this->isOnOpenDir)
     {
         this->nextVideo();
@@ -206,16 +259,52 @@ bool SimplePlayer::eventFilter(QObject *watched, QEvent *event)
 void SimplePlayer::paint()
 {
     QPainter painter(ui->seek);
-    QPen pen(Qt::blue);
-    pen.setWidth(2);
-    painter.setPen(pen);
-    for (auto x: this->xs)
-        painter.drawLine(QLineF(QPointF(x, 0), QPointF(x, 200)));
+    QColor color;
+
+    QPen pen;
+    pen.setStyle(Qt::SolidLine);
+
+    auto even = (xs.length() / 2) == xs.length();
+    int drawLength;
+    if(even)
+        drawLength = xs.length();
+    else
+        drawLength = xs.length() - 1;
+
+    for(int i = 0; i < drawLength; ++i)
+    {
+        color = Qt::black;
+        pen.setColor(color);
+        pen.setWidth(1);
+        painter.setPen(pen);
+        painter.setBrush(color);
+        painter.drawLine(QLineF(QPointF(this->xs.at(i), 0), QPointF(this->xs.at(i), 200)));
+        if(i >= 1 && i+1 < drawLength && this->actionTypes.at(i+1) == this->actionTypes.at(i+2))
+        {
+            continue;
+        }
+        else
+        {
+            auto action = this->actionTypes.at(i+1) - 1;
+            color = this->colors.at(action);
+            pen.setColor(color);
+            pen.setWidth(1);
+            painter.setPen(pen);
+            painter.setBrush(color);
+
+            auto x = this->xs.at(i);
+            auto x_end = this->xs.at(i+1);
+            chen_debug << this->xs;
+            chen_debug << this->actionTypes;
+            painter.drawRect(x, 10, x_end - x, 20);
+        }
+    }
+
 
     if(!this->xs.isEmpty())
     {
         pen.setColor(Qt::red);
-        pen.setWidth(2);
+        pen.setWidth(1);
         painter.setPen(pen);
         painter.drawLine(QLineF(QPointF(this->xs.back(), 0), QPointF(this->xs.back(), 200)));
     }
@@ -227,8 +316,10 @@ void SimplePlayer::on_undo_clicked()
     if(!this->xs.isEmpty())
     {
         this->xs.pop_back();
+        this->positions.pop_back();
+        this->actionTypes.pop_back();
         ui->seek->update();
-
+        this->writeToFile();
     }
     if(this->xs.isEmpty())
         ui->undo->setEnabled(false);
@@ -240,5 +331,116 @@ void SimplePlayer::on_undo_clicked()
 void SimplePlayer::reset()
 {
     this->xs.clear();
+    this->positions.clear();
+    this->actionTypes.clear();
     ui->seek->update();
+}
+
+void SimplePlayer::on_replay_clicked()
+{
+    chen_debug << this->currentVideoPath.length() <<  this->currentVideoIndex;
+    if(this->currentVideoPath.length() > this->currentVideoIndex)
+    {
+        this->setVideo(this->currentVideoPath.at(this->currentVideoIndex));
+    }
+}
+
+void SimplePlayer::setAllEnable()
+{
+    ui->action1->setEnabled(true);
+    ui->action2->setEnabled(true);
+    ui->action3->setEnabled(true);
+    ui->action4->setEnabled(true);
+    ui->action5->setEnabled(true);
+    ui->action6->setEnabled(true);
+    ui->action7->setEnabled(true);
+    ui->action8->setEnabled(true);
+}
+
+void SimplePlayer::on_action1_clicked()
+{
+    setAllEnable();
+    ui->action1->setEnabled(false);
+    currentActionIndex = 1;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action2_clicked()
+{
+    setAllEnable();
+    ui->action2->setEnabled(false);
+    currentActionIndex = 2;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action3_clicked()
+{
+    setAllEnable();
+    ui->action3->setEnabled(false);
+    currentActionIndex = 3;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action4_clicked()
+{
+    setAllEnable();
+    ui->action4->setEnabled(false);
+    currentActionIndex = 4;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action5_clicked()
+{
+    setAllEnable();
+    ui->action5->setEnabled(false);
+    currentActionIndex = 5;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action6_clicked()
+{
+    setAllEnable();
+    ui->action6->setEnabled(false);
+    currentActionIndex = 6;
+    if(actionBegin == true)
+        actionBegin = false;
+    else
+        actionBegin = true;
+}
+
+void SimplePlayer::on_action7_clicked()
+{
+   setAllEnable();
+   ui->action7->setEnabled(false);
+   currentActionIndex = 7;
+   if(actionBegin == true)
+       actionBegin = false;
+   else
+       actionBegin = true;
+}
+
+void SimplePlayer::on_action8_clicked()
+{
+   setAllEnable();
+   ui->action8->setEnabled(false);
+   currentActionIndex = 8;
+   if(actionBegin == true)
+       actionBegin = false;
+   else
+       actionBegin = true;
 }

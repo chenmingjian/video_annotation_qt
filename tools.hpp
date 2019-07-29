@@ -8,8 +8,8 @@
 
 QStringList ls(QString path, QStringList filters = {"*"});
 
-template<typename T>
-void savetxt(QString savePath, T content)
+template<typename T, typename T_2>
+void savetxt(QString savePath, T content, T_2 content_2)
 
 {
     QFile saveFile(savePath);
@@ -20,10 +20,11 @@ void savetxt(QString savePath, T content)
         return;
     }
     QTextStream textStream(&saveFile);
-    for (auto it = content.begin(); it != content.end(); ++it)
+    for (int i = 0; i < content.length(); ++i)
     {
-        QString sContent = QString::number(*it);
-
+        QString sContent = QString::number(content.at(i));
+        sContent += " ";
+        sContent += QString::number(content_2.at(i));
         textStream << sContent <<"\n";
     }
     saveFile.close();

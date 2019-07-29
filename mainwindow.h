@@ -32,6 +32,24 @@ private slots:
 
     void on_undo_clicked();
 
+    void on_replay_clicked();
+
+    void on_action1_clicked();
+
+    void on_action2_clicked();
+
+    void on_action3_clicked();
+
+    void on_action4_clicked();
+
+    void on_action5_clicked();
+
+    void on_action6_clicked();
+
+    void on_action7_clicked();
+
+    void on_action8_clicked();
+
 private:
     Ui::SimplePlayer *ui;
 
@@ -46,6 +64,8 @@ private:
     bool isPressing = false;
     QStringList currentVideoPath;
     int currentVideoIndex;
+    int currentActionIndex;
+    bool actionBegin;
     void setVideo(QString filePath);
     void nextVideo();
     bool eventFilter(QObject *watched, QEvent *event);
@@ -54,8 +74,12 @@ private:
     void paint();
     QVector<float> xs;
     QVector<float> positions;
+    QVector<int> actionTypes;
+    QVector<QColor> colors;
     void reset();
     void writeToFile();
+    void setAllEnable();
+    void writPostion();
 };
 
 #endif // SIMPLEPLAYER_H_

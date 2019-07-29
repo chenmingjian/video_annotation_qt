@@ -24,7 +24,3 @@ QStringList ls(QString path, QStringList filters)
 
     return pathList;
 }
-
-
-#include <QMessageBox>
-
