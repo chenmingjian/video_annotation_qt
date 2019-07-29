@@ -6,7 +6,7 @@ a simply tool to get the positions in video.not cool but useful.
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg?style=flat-square)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 
-![gui](https://github.com/chenmingjian/video_annotation_qt/blob/master/test.png)
+![gui](https://github.com/chenmingjian/video_annotation_qt/blob/specific/test.png)
 
 
 the line(red and blue) is the position that want to note.
